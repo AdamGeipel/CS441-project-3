@@ -24,14 +24,6 @@
  * Structures
  *****************************/
 
-struct buffer_val
-{
-  int rand;
-  int is_next_consumed;
-  int is_next_produced;
-}
-  typedef struct buffer_val buffer_val;
-
 /*****************************
  * Global Variables
  *****************************/
@@ -42,7 +34,15 @@ int num_producers = 0;
 int num_consumers = 0;
 int buffer_size = 10;
 pthread_t prod_threads, con_threads;
-semaphore_t print, mutex, can_produce, can_consume;
+semaphore_t mutex, open_spaces, full_spaces;
+int next_prod = 0;
+int next_con = 0;
+int total_prod = 0;
+int total_con = 0;
+int *buffer;
+int kill_time;
+
+
 
 /*****************************
  * Function Declarations
@@ -54,4 +54,6 @@ void *consumer(void *threadid);
 
 void *producer(void *threadid);
 
-volid read_args();
+void read_args();
+
+void print_event(char check, int buffered_val, int thread_id);
