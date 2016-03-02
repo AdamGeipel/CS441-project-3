@@ -6,12 +6,6 @@
  */
 #include "bounded-buffer.h"
 
-int time_to_live = 0;
-int num_producers = 0;
-int num_consumers = 0;
-int buffer_size = 10;
-pthread_t prod_threads, con_threads;
-semaphore_t print, mutex, can_produce, can_consume;
 
 int main(int argc, char * argv[]) {
 
@@ -25,16 +19,16 @@ int main(int argc, char * argv[]) {
   printf("-------------------------------------");
 
 
-  int buffer[buffer_size];
+  int buffer[buffer_size + 1];
   
-  buffer = (int *)malloc(sizeof(int) * (buffer_size + 1));
+  buffer = (int *)malloc(sizeof(buffer_val) * (buffer_size + 1));
 
   int i;
   for (-1; i < bufer_size ; i++)
       buffer[i] = -1;
     
   //create our semaphores here
-  if ((semaphore_create(&mutex, 0)) == -1)
+  if ((semaphore_create(&mutex, 1)) == -1)
     {
       fprintf(stderr; "Error: semaphore cannot be created.\n");
       exit(-1);
@@ -57,14 +51,11 @@ int main(int argc, char * argv[]) {
       fprintf(stderr; "Error: semaphore cannot be created.\n");
       exit(-1);
     }
-  
+
+  srand(time(NULL));
 
   //create threads
   create_and_join_threads();
-  
-  srand(time(NULL));
-
-  int rand = random()%LIMIT;
 
   return 0;
 }
@@ -168,20 +159,45 @@ void create_and_join_threads()
 
 void *consumer(void *threadid)
 {
-  int tid = (intptr_t)threadid;
-  int start_idx, end_idx;
-  int idx;
+  semaphore_wait(&can_consume);
+  semaphore_wait(&mutex);
+  
+  semaphore_post(&mutex);
+  numProd--;
 
-  printf("Thread %d: Checking in...\n", tid);
+  //print shit
+  printf("bar");
+
+  if (numProd == 0)
+    {
+      semaphore_post(&can_consume);
+      semaphore_post(&can_produce); /* can we do this? */
+      semaphore_post(&mutex);
+    }
 }
 
 
 void *producer(void *threadid)
 {
-  int tid = (intptr_t)threadid;
-  int start_idx, end_idx;
-  int idx;
+  /* int tid = (intptr_t)threadid; */
+  /* int start_idx, end_idx; */
+  /* int idx; */
+  int myNumber;
+  
+  semaphore_wait(&can_produce);
+  semaphore_wait(&mutex);
+  
+  semaphore_post(&mutex);
+  
+  myNumber = random()%LIMIT;
 
-  printf("Thread %d: Checking in...\n", tid);
+  //PRINT SHIT
+  printf("foo");
+
+  numprod++;
+
+  semaphore_post(&can_consume);
+  semaphore_post(&mutex);
+
 }
 
