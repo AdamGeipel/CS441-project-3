@@ -33,7 +33,8 @@ int time_to_live = 0;
 int num_producers = 0;
 int num_consumers = 0;
 int buffer_size = 10;
-pthread_t prod_threads, con_threads;
+pthread_t *prod_threads;
+pthread_t *con_threads;
 semaphore_t mutex, open_spaces, full_spaces;
 int next_prod = 0;
 int next_con = 0;
@@ -53,7 +54,5 @@ void create_and_join_threads();
 void *consumer(void *threadid);
 
 void *producer(void *threadid);
-
-void read_args();
 
 void print_event(char check, int buffered_val, int thread_id);
