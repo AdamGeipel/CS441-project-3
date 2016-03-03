@@ -39,18 +39,32 @@ int main(int argc, char * argv[]) {
   
 
   //initial printing
-  printf("Buffer Size               :   %2d\n", buffer_size);
-  printf("Time To Live              :   %2d\n", time_to_live);
-  printf("Number of Producer threads:   %2d\n", num_producers);
-  printf("Number of Consumer threads:   %2d\n", num_consumers);
-  printf("-------------------------------------");
+  printf("Buffer Size                :   %2d\n", buffer_size);
+  printf("Time To Live (seconds)     :   %2d\n", time_to_live);
+  printf("Number of Producer threads :   %2d\n", num_producers);
+  printf("Number of Consumer threads :   %2d\n", num_consumers);
+  printf("-------------------------------------\n");
 
   //create space for the buffer
   buffer = malloc(sizeof(int) * (buffer_size));
 
+  //print initial buffer
+  printf("Initial Buffer:\t\t\t\t\t\t[");
+  
   for (i = 0; i < buffer_size ; i++)
+    {
       buffer[i] = -1;
-    
+      printf(" %d", buffer[i]);
+      
+      if (next_prod == i)
+	printf("^");
+      if(next_con == i)
+	printf("v");
+
+      printf(" ");
+    }
+  printf("]\n");
+  
   //create our semaphores here
   if ((semaphore_create(&mutex, 1)) == -1)
     {
@@ -72,25 +86,21 @@ int main(int argc, char * argv[]) {
 
   srand(time(NULL));
 
-  //create threads
-  create_and_join_threads();
-
   //sleep for user specified time
   kill_time = time(0) + time_to_live;
   
-  if (time(0) <  kill_time)
-    //do nothing
-    ;
-  else
-    {
+  //create threads
+  create_and_join_threads();
+  
+  //TIME CHECK HERE MAYBE?
+ 
       printf("-----------+-----------\n");
       printf("Produced   |    %3d\n", total_prod);
       printf("Consumed   |    %3d\n", total_con);
       printf("-----------+-----------\n");
 
-      pthread_exit(NULL);
       
-    }
+    
   
   return 0;
 }
@@ -107,7 +117,6 @@ void create_and_join_threads()
 
   for (i = 0; i < num_producers; i++)
     {
-      printf("main(): Creating thread id = %d\n", i);
       rc = pthread_create(&(prod_threads[i]), NULL, producer, (void*)(intptr_t)i);
       if (rc != 0)
 	{
@@ -122,7 +131,7 @@ void create_and_join_threads()
 
   for (i = 0; i < num_consumers; i++)
     {
-      printf("main(): Creating thread id = %d\n", i + (num_producers));
+     
       rc = pthread_create(&(con_threads[i]), NULL, consumer, (void*)(intptr_t)i);
       if (rc != 0)
 	{
@@ -162,12 +171,17 @@ void create_and_join_threads()
 
 void *producer(void *threadid)
 {
+
   int tid = (intptr_t)threadid;
   char check = 'p';
   int rand;
 
   while (TRUE)
     {
+      
+      if (time(0) > kill_time)
+	pthread_exit(NULL);
+  
       //is the buffer full?
       semaphore_wait(&open_spaces);
   
@@ -196,18 +210,25 @@ void *producer(void *threadid)
       semaphore_post(&full_spaces);
 
     }
-    
+
+  
 }
 
 
 void *consumer(void *threadid)
 {
+
+  
   int tid = (intptr_t)threadid;
   char check = 'c';
   int consumed_val;
   
   while(TRUE)
     {
+
+      if (time(0) > kill_time)
+	pthread_exit(NULL);
+  
       //is the buffer empty?
       semaphore_wait(&full_spaces);
   
@@ -238,8 +259,6 @@ void *consumer(void *threadid)
       semaphore_post(&open_spaces);
 
     }
-
-
 }
 
 /*
@@ -270,7 +289,7 @@ void print_event(char check, int buffered_val, int thread_id)
   
   for (i = 0; i < buffer_size; i++)
     {
-      printf(" %d", buffer[i]);
+      printf(" %2d", buffer[i]);
 
       if (next_prod == i)
 	printf("^");
