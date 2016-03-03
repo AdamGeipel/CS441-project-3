@@ -18,10 +18,8 @@ int main(int argc, char * argv[]) {
   printf("Number of Consumer threads:   %2d\n", num_consumers);
   printf("-------------------------------------");
 
-
-  int buffer[buffer_size + 1];
-  
-  buffer = (int *)malloc(sizeof(buffer_val) * (buffer_size + 1));
+  //create space for the buffer
+  buffer = malloc(sizeof(int) * (buffer_size));
 
   int i;
   for (-1; i < bufer_size ; i++)
@@ -34,19 +32,13 @@ int main(int argc, char * argv[]) {
       exit(-1);
     }
   
-  if ((semaphore_create(&print, 0)) == -1)
+  if ((semaphore_create(&open_spaces, buffer_size)) == -1)
     {
       fprintf(stderr; "Error: semaphore cannot be created.\n");
       exit(-1);
     }
   
-  if ((semaphore_create(&can_consume, 0)) == -1)
-    {
-      fprintf(stderr; "Error: semaphore cannot be created.\n");
-      exit(-1);
-    }
-  
-  if ((semaphore_create(&can_produce, 0)) == -1)
+  if ((semaphore_create(&full_spaces, 0)) == -1)
     {
       fprintf(stderr; "Error: semaphore cannot be created.\n");
       exit(-1);
@@ -57,6 +49,18 @@ int main(int argc, char * argv[]) {
   //create threads
   create_and_join_threads();
 
+  //sleep for user specified time
+  kill_time = time(0) + time_to_live;
+  
+  if (time(0) <  kill_time)
+    //do nothing
+  else
+    {
+      printf("-----------+-----------\n");
+      printf("Produced   |    %3d\n", total_prod);
+      printf("Consumed   |    %3d\n", total_con);
+      printf("-----------+-----------\n");
+    }
   return 0;
 }
 
@@ -157,47 +161,126 @@ void create_and_join_threads()
   
 }
 
-void *consumer(void *threadid)
-{
-  semaphore_wait(&can_consume);
-  semaphore_wait(&mutex);
-  
-  semaphore_post(&mutex);
-  numProd--;
-
-  //print shit
-  printf("bar");
-
-  if (numProd == 0)
-    {
-      semaphore_post(&can_consume);
-      semaphore_post(&can_produce); /* can we do this? */
-      semaphore_post(&mutex);
-    }
-}
-
-
 void *producer(void *threadid)
 {
-  /* int tid = (intptr_t)threadid; */
-  /* int start_idx, end_idx; */
-  /* int idx; */
-  int myNumber;
-  
-  semaphore_wait(&can_produce);
-  semaphore_wait(&mutex);
-  
-  semaphore_post(&mutex);
-  
-  myNumber = random()%LIMIT;
+  int tid = (intptr_t)threadid);
+  int rand;
 
-  //PRINT SHIT
-  printf("foo");
+  while (TRUE)
+    {
+      //is the buffer full?
+      semaphore_wait(&open_spaces);
+  
+      semaphore_wait(&mutex);
 
-  numprod++;
+      /*
+       * Sleep for a random number of microseconds
+       * Must be less than one second  (1,000,000 microseconds in a second)
+       */
+      usleep(random()%1000000);
 
-  semaphore_post(&can_consume);
-  semaphore_post(&mutex);
+      //get the random value
+      rand = random()%LIMIT;
+      //put random value in the buffer
+      buffer[next_prod] = rand;
+      next_prod = (next_prod + 1)%buffer_size;
+
+      total_prod++;
+  
+      /*
+       * Print shit here
+       */
+       print_event(check, consumed_val, tid);
+
+      semaphore_post(&mutex);
+      semaphore_post(&full_spaces);
+
+    }
+    
+}
+
+
+void *consumer(void *threadid)
+{
+  int tid = (intptr_t)threadid;
+  char check = 'c';
+  int consumed_val;
+  
+  while(TRUE)
+    {
+      //is the buffer empty?
+      semaphore_wait(&full_spaces);
+  
+      semaphore_wait(&mutex);
+
+      /*
+       * Sleep for a random number of microseconds
+       * Must be less than one second  (1,000,000 microseconds in a second)
+       */
+      usleep(random()%1000000);
+      
+      consumed_val = buffer[next_con];
+      
+      //change consumed value to -1 to denote that it's open
+      buffer[next_con] = -1;
+
+      //Move on to the next index
+      next_con = (next_con+1)%buffer_size;
+
+      total_con++;
+  
+      /*
+       * Print shit here
+       */
+      print_event(check, consumed_val, tid);
+      
+      semaphore_post(&mutex);
+      semaphore_post(&open_spaces);
+
+    }
+
 
 }
 
+/*
+ * passes in either a 'p' or a 'c'
+ * prints outcome of last buffer event (consume or produce)
+ */
+void print_event(char check, int buffered_val, int thread_id)
+{
+
+  char *status = NULL;
+  int totes_magotes;
+  
+  if (check == 'p')
+    {
+      status = "Producer";
+      totes_magotes = total_prod;
+    }
+  else
+    {
+      status = "Consumer";
+      totes_magotes = total_con;
+    }
+
+  //producer/consumer, thread ID, total threads produced, value put in buffer
+  printf("%s  %d: Total\t%d, Value\t%d\t\t[", status, thread_id, totes_magotes, buffered_val); 
+
+  int i;
+  
+  for (i = 0; i < buffer_size; i++)
+    {
+      printf(" %d", buffer[i]);
+
+      if (next_prod == i)
+	printf("^");
+      if(next_con == i)
+	printf("v");
+
+      printf(" ");
+    }
+
+  printf("]\n");
+}
+  
+      
