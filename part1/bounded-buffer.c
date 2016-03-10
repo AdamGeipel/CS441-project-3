@@ -99,9 +99,19 @@ int main(int argc, char * argv[]) {
       printf("Consumed   |    %3d\n", total_con);
       printf("-----------+-----------\n");
 
-      
-    
-  
+      if( NULL != buffer ){
+          free(buffer);
+          buffer = NULL;
+      }
+      if( NULL != prod_threads ){
+          free(prod_threads);
+          prod_threads = NULL;
+      }
+      if( NULL != con_threads ){
+          free(con_threads);
+          con_threads = NULL;
+      }
+
   return 0;
 }
 
