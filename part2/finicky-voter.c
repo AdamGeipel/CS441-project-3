@@ -325,75 +325,75 @@ void *republican(void *threadid){
 	  */
 	//while(true){
 		
-		semaphore_wait(mutex_lineup);
+	semaphore_wait(mutex_lineup);
+	
+	if( dem_inline != 0){ //there are democrats in line to vote
+		semaphore_wait(&rep_barrier);
+		sleep(1); //walking in line
+		rep_inline++;
+		semaphore_post(&mutex_lineup);//let other people try and line up 
+		semaphore_wait(&dem_barrier);
 		
-		if( dem_inline != 0){ //there are democrats in line to vote
-			semaphore_wait(&rep_barrier);
-			sleep(1); //walking in line
-			rep_inline++;
-			semaphore_post(&mutex_lineup);//let other people try and line up 
-			semaphore_wait(&dem_barrier);
-			
-			/*
-			 * vote
-			 */
-			print_voting_status(party, tid, 'W'); //print waiting on a voting booth
-			semaphore_wait(&voting_booths); //see if booths are available
-			
-			//if we hit here we have a voting booth so vote
-			for(i = 0; i < num_booths; i++){
-				if( buffer[i] == '.' ){
-					buffer[i] == 'R';
-					booth_num = i; 
-					break; //we're in our first open booth so jump out
-				}
+		/*
+		 * vote
+		 */
+		print_voting_status(party, tid, 'W'); //print waiting on a voting booth
+		semaphore_wait(&voting_booths); //see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] == 'R';
+				booth_num = i; 
+				break; //we're in our first open booth so jump out
 			}
-			//print that we are now casting our vote a.k.a sleeping!
-			semaphore_wait(&printing_mutex);
-			print_voting(party ,tid, booth_num);
-			usleep(random()%100000);
-			semaphore_post(&printing_mutex);
-			
-			//finished voting
-			print_voting_status(party, tid, 'L'); //print leaving a voting booth
-			semaphore_post(&dem_barrier); //let a democrat know you left
-			semaphore_post(&voting_booths); //release the booth you voted in
-			rep_inline--;
 		}
-		else{//no democrats in line
-			sleep(1); //walking in line
-			rep_inline++;//we're in line waiting to vote
-			semaphore_post(&mutex_lineup); //let other people try and line up
-			semaphore_wait(&dem_barrier);
-			
-			/*
-			 * vote
-			 */
-			print_voting_status(party, tid, 'W'); //print waiting on a voting booth
-			semaphore_wait(&voting_booths); //see if booths are available
-			
-			//if we hit here we have a voting booth so vote
-			for(i = 0; i < num_booths; i++){
-				if( buffer[i] == '.' ){
-					buffer[i] == 'R';
-					booth_num = i; 
-					break; //we're in our first open booth so jump out
-				}
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+		print_voting(party ,tid, booth_num);
+		usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); //print leaving a voting booth
+		semaphore_post(&dem_barrier); //let a democrat know you left
+		semaphore_post(&voting_booths); //release the booth you voted in
+		rep_inline--;
+	}
+	else{//no democrats in line
+		sleep(1); //walking in line
+		rep_inline++;//we're in line waiting to vote
+		semaphore_post(&mutex_lineup); //let other people try and line up
+		semaphore_wait(&dem_barrier);
+		
+		/*
+		 * vote
+		 */
+		print_voting_status(party, tid, 'W'); //print waiting on a voting booth
+		semaphore_wait(&voting_booths); //see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] == 'R';
+				booth_num = i; 
+				break; //we're in our first open booth so jump out
 			}
-			//print that we are now casting our vote a.k.a sleeping!
-			semaphore_wait(&printing_mutex);
-			print_voting(party ,tid, booth_num);
-			usleep(random()%100000);
-			semaphore_post(&printing_mutex);
-			
-			//finished voting
-			print_voting_status(party, tid, 'L'); //print leaving a voting booth
-			semaphore_post(&dem_barrier); //let a democrat know you left
-			semaphore_post(&voting_booths); //release the booth you voted in
-			rep_inline--;
-			
-		}		
-	//}
+		}
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+		print_voting(party ,tid, booth_num);
+		usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); //print leaving a voting booth
+		semaphore_post(&dem_barrier); //let a democrat know you left
+		semaphore_post(&voting_booths); //release the booth you voted in
+		rep_inline--;
+		
+	}		
+
 		//exit thread.
 		pthread_exit(NULL);		
 		/* 
@@ -413,10 +413,10 @@ void *democrat(void *threadid){
 	 * need a check because we don't want this to print again after
 	 * all threads have gotten to this point
 	 */
-		semaphore_wait(&printing_mutex);
-		print_wait_polling_station(party, tid);
-		semaphore_post(&printing_mutex);
-	
+	semaphore_wait(&printing_mutex);
+	print_wait_polling_station(party, tid);
+	semaphore_post(&printing_mutex);
+
 	
 	//waiting until all threads can enter polling station after two seconds
 	semaphore_wait(&barrier);
@@ -451,75 +451,75 @@ void *democrat(void *threadid){
 	  */
 	//while(true){
 		
-		semaphore_wait(mutex_lineup);
+	semaphore_wait(mutex_lineup);
+	
+	if( rep_inline != 0){ //there are democrats in line to vote
+		semaphore_wait(&dem_barrier);
+		sleep(1); //walking in line
+		dem_inline++;
+		semaphore_post(&mutex_lineup);//let other people try and line up 
+		semaphore_wait(&rep_barrier);
 		
-		if( rep_inline != 0){ //there are democrats in line to vote
-			semaphore_wait(&dem_barrier);
-			sleep(1); //walking in line
-			dem_inline++;
-			semaphore_post(&mutex_lineup);//let other people try and line up 
-			semaphore_wait(&rep_barrier);
-			
-			/*
-			 * vote
-			 */
-			print_voting_status(party, tid, 'W'); //print waiting on a voting booth
-			semaphore_wait(&voting_booths); //see if booths are available
-			
-			//if we hit here we have a voting booth so vote
-			for(i = 0; i < num_booths; i++){
-				if( buffer[i] == '.' ){
-					buffer[i] == 'D';
-					booth_num = i; 
-					break; //we're in our first open booth so jump out
-				}
+		/*
+		 * vote
+		 */
+		print_voting_status(party, tid, 'W'); //print waiting on a voting booth
+		semaphore_wait(&voting_booths); //see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] == 'D';
+				booth_num = i; 
+				break; //we're in our first open booth so jump out
 			}
-			//print that we are now casting our vote a.k.a sleeping!
-			semaphore_wait(&printing_mutex);
-			print_voting(party ,tid, booth_num);
-			usleep(random()%100000);
-			semaphore_post(&printing_mutex);
-			
-			//finished voting
-			print_voting_status(party, tid, 'L'); //print leaving a voting booth
-			semaphore_post(&rep_barrier); //let a democrat know you left
-			semaphore_post(&voting_booths); //release the booth you voted in
-			rep_inline--;
 		}
-		else{//no democrats in line
-			sleep(1); //walking in line
-			dem_inline++;//we're in line waiting to vote
-			semaphore_post(&mutex_lineup); //let other people try and line up
-			semaphore_wait(&rep_barrier);
-			
-			/*
-			 * vote
-			 */
-			print_voting_status(party, tid, 'W'); //print waiting on a voting booth
-			semaphore_wait(&voting_booths); //see if booths are available
-			
-			//if we hit here we have a voting booth so vote
-			for(i = 0; i < num_booths; i++){
-				if( buffer[i] == '.' ){
-					buffer[i] == 'D';
-					booth_num = i; 
-					break; //we're in our first open booth so jump out
-				}
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+		print_voting(party ,tid, booth_num);
+		usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); //print leaving a voting booth
+		semaphore_post(&rep_barrier); //let a democrat know you left
+		semaphore_post(&voting_booths); //release the booth you voted in
+		rep_inline--;
+	}
+	else{//no democrats in line
+		sleep(1); //walking in line
+		dem_inline++;//we're in line waiting to vote
+		semaphore_post(&mutex_lineup); //let other people try and line up
+		semaphore_wait(&rep_barrier);
+		
+		/*
+		 * vote
+		 */
+		print_voting_status(party, tid, 'W'); //print waiting on a voting booth
+		semaphore_wait(&voting_booths); //see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] == 'D';
+				booth_num = i; 
+				break; //we're in our first open booth so jump out
 			}
-			//print that we are now casting our vote a.k.a sleeping!
-			semaphore_wait(&printing_mutex);
-			print_voting(party ,tid, booth_num);
-			usleep(random()%100000);
-			semaphore_post(&printing_mutex);
-			
-			//finished voting
-			print_voting_status(party, tid, 'L'); //print leaving a voting booth
-			semaphore_post(&rep_barrier); //let a democrat know you left
-			semaphore_post(&voting_booths); //release the booth you voted in
-			dem_inline--;
-			
-		}		
-	//}
+		}
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+		print_voting(party ,tid, booth_num);
+		usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); //print leaving a voting booth
+		semaphore_post(&rep_barrier); //let a democrat know you left
+		semaphore_post(&voting_booths); //release the booth you voted in
+		dem_inline--;
+		
+	}		
+
 		//exit thread.
 		pthread_exit(NULL);		
 		/* 
