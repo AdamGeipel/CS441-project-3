@@ -1,6 +1,5 @@
 /*
  * 
- * 
  * CS 441/541: Finicky Voter (Project 3 Part 2)
  *
  */
@@ -45,7 +44,7 @@ semaphore_t waiting_rep, waiting_dem, waiting_ind, rep_barrier, dem_barrier, vot
 /*****************************
  * Function Declarations
  *****************************/
- void crate_and_join_threads();
+ void create_and_join_threads();
  
  void *republican(void *threadid);
  
@@ -66,5 +65,5 @@ semaphore_t waiting_rep, waiting_dem, waiting_ind, rep_barrier, dem_barrier, vot
  /*
   * prints when a thread is waiting to enter the polling station
   */
- void print_wait_polling_station( char party, int threadid)
+void print_wait_polling_station( char party, int threadid);
 

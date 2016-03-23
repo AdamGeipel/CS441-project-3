@@ -1,5 +1,4 @@
 /*
- * 
  *
  * CS 441/541: Finicky Voter (Project 3 Part 2)
  *
@@ -7,11 +6,12 @@
 #include "finicky-voter.h"
 
 int main(int argc, char * argv[]) {
+    int i;
 	//check for negative number arguments
 	for (i = 1; i < argc; i++){
 		if (strtol(argv[i], NULL, 10) < 0){
-			fprintf(stderr, "Error, invalid argument: %s.\n", argv[i]);
-			exit(-1);
+                    fprintf(stderr, "Error, invalid argument: %s.\n", argv[i]);
+		    exit(-1);
 		}
 	}
 	
@@ -20,27 +20,27 @@ int main(int argc, char * argv[]) {
 	 */
 	if( argc == 1 ){ //all defaults
 		num_booths = 10;
-		num_Republicans = 5;
+		num_republicans = 5;
 		num_democrats = 5;
 		num_independents = 5;
 	}else if( argc == 2 ){
 		num_booths = strtol(argv[1], NULL, 10);
-		num_Republicans = 5;
+		num_republicans = 5;
 		num_democrats = 5;
 		num_independents = 5;
 	}else if( argc == 3 ){
 		num_booths = strtol(argv[1], NULL, 10);
-		num_Republicans = (int)strtol(argv[2], NULL, 10);
+		num_republicans = (int)strtol(argv[2], NULL, 10);
 		num_democrats = 5;
 		num_independents = 5;
 	}else if( argc == 4 ){
 		num_booths = strtol(argv[1], NULL, 10);
-		num_Republicans = (int)strtol(argv[2], NULL, 10);
+		num_republicans = (int)strtol(argv[2], NULL, 10);
 		num_democrats = (int)strtol(argv[3], NULL, 10);
 		num_independents = 5;
 	}else if( argc == 5 ){
 		num_booths = strtol(argv[1], NULL, 10);
-		num_Republicans = (int)strtol(argv[2], NULL, 10);
+		num_republicans = (int)strtol(argv[2], NULL, 10);
 		num_democrats = (int)strtol(argv[3], NULL, 10);
 		num_independents = (int)strtol(argv[4], NULL, 10);
 	}else{
@@ -60,7 +60,6 @@ int main(int argc, char * argv[]) {
 	buffer = malloc(sizeof(int) * (num_booths));
   
 	//voting booths are originally empty
-	int i = 0;
 	for ( i = 0; i < num_booths; i++){
 		buffer[i] = '.';
 	}
@@ -255,7 +254,8 @@ void print_voting( char party, int threadid, int booth ){
 void print_voting_status(char party, int threadid, char status ){
 	int i;
 	char *voting_status= NULL;
-	
+	char *party_status = NULL;
+
 	if( party == 'R' ){
 		party_status = "Republican";
 	}else if( party == 'D' ){
@@ -325,7 +325,7 @@ void *republican(void *threadid){
 	  */
 	//while(true){
 		
-	semaphore_wait(mutex_lineup);
+	semaphore_wait(&mutex_lineup);
 	
 	if( dem_inline != 0){ //there are democrats in line to vote
 		semaphore_wait(&rep_barrier);
@@ -343,7 +343,7 @@ void *republican(void *threadid){
 		//if we hit here we have a voting booth so vote
 		for(i = 0; i < num_booths; i++){
 			if( buffer[i] == '.' ){
-				buffer[i] == 'R';
+				buffer[i] = 'R';
 				booth_num = i; 
 				break; //we're in our first open booth so jump out
 			}
@@ -375,7 +375,7 @@ void *republican(void *threadid){
 		//if we hit here we have a voting booth so vote
 		for(i = 0; i < num_booths; i++){
 			if( buffer[i] == '.' ){
-				buffer[i] == 'R';
+				buffer[i] = 'R';
 				booth_num = i; 
 				break; //we're in our first open booth so jump out
 			}
@@ -408,7 +408,8 @@ void *republican(void *threadid){
 
 void *democrat(void *threadid){
 	int tid = (intptr_t)threadid;
-	char party = 'R';
+	char party = 'D';
+        int i, booth_num;
 	/*
 	 * need a check because we don't want this to print again after
 	 * all threads have gotten to this point
@@ -451,7 +452,7 @@ void *democrat(void *threadid){
 	  */
 	//while(true){
 		
-	semaphore_wait(mutex_lineup);
+	semaphore_wait(&mutex_lineup);
 	
 	if( rep_inline != 0){ //there are democrats in line to vote
 		semaphore_wait(&dem_barrier);
@@ -469,7 +470,7 @@ void *democrat(void *threadid){
 		//if we hit here we have a voting booth so vote
 		for(i = 0; i < num_booths; i++){
 			if( buffer[i] == '.' ){
-				buffer[i] == 'D';
+				buffer[i] = 'D';
 				booth_num = i; 
 				break; //we're in our first open booth so jump out
 			}
@@ -501,7 +502,7 @@ void *democrat(void *threadid){
 		//if we hit here we have a voting booth so vote
 		for(i = 0; i < num_booths; i++){
 			if( buffer[i] == '.' ){
-				buffer[i] == 'D';
+				buffer[i] = 'D';
 				booth_num = i; 
 				break; //we're in our first open booth so jump out
 			}
@@ -534,7 +535,8 @@ void *democrat(void *threadid){
 
 void *independent(void *threadid){
 	int tid = (intptr_t)threadid;
-	char party = 'R';
+	char party = 'I';
+        int i, booth_num;
 	/*
 	 * need a check because we don't want this to print again after
 	 * all threads have gotten to this point
@@ -577,7 +579,7 @@ void *independent(void *threadid){
 	* Let's do some voting!
 	*/
 	
-	semaphore_wait(mutex_lineup);
+	semaphore_wait(&mutex_lineup);
 	
 	semaphore_post(&mutex_lineup);//let other people try and line up 
 	sleep(1); //walking in line
@@ -591,7 +593,7 @@ void *independent(void *threadid){
 	//if we hit here we have a voting booth so vote
 	for(i = 0; i < num_booths; i++){
 		if( buffer[i] == '.' ){
-			buffer[i] == 'I';
+			buffer[i] = 'I';
 			booth_num = i; 
 			break; //we're in our first open booth so jump out
 		}
@@ -615,5 +617,5 @@ void *independent(void *threadid){
 	 * Also, why I don't think we need a while loop either. when it reaches
 	 * the end we kill it. It should only go through once to vote not as many
 	 * times as it wants to. 
-	*/
+         */
 }
