@@ -44,7 +44,7 @@ semaphore_t waiting_rep, waiting_dem, waiting_ind, rep_barrier, dem_barrier, vot
 /*****************************
  * Function Declarations
  *****************************/
- void create_and_join_threads();
+void create_and_join_threads();
  
  void *republican(void *threadid);
  
