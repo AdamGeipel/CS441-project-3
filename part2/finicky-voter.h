@@ -15,8 +15,8 @@
 /*****************************
  * Defines
  *****************************/
-int rep_count = 0; //count num of republicans waiting for a booth
-int dem_count = 0; //count num of democrats waiting for a booth
+int rep_inline = 0; //num of republicans waiting in line for a booth
+int dem_inline = 0; //num of democrats waiting in line for a booth
 int num_republicans = 0;
 int num_democrats = 0;
 int num_independents = 0;
@@ -30,7 +30,7 @@ pthread_t *rep_threads;
 pthread_t *dem_threads;
 pthread_t *ind_threads;
 semaphore_t mutex_rope, mutex_lineup, barrier, printing_mutex, can_vote;
-semaphore_t waiting_rep, waiting_dem, waiting_ind;
+semaphore_t waiting_rep, waiting_dem, waiting_ind, rep_barrier, dem_barrier, voting_booths;
 
 
 /*****************************
@@ -52,4 +52,19 @@ semaphore_t waiting_rep, waiting_dem, waiting_ind;
  void *democrat(void *threadid);
  
  void *independent(void *threadid);
+ 
+ /*
+  * prints a change in state: entering, waiting, leaving
+  */
+ void print_voting_status(char party, int threadid, char status );
+ 
+ /*
+  * prints when a thread is "voting!"
+  */
+ void print_voting( char party, int threadid, int booth );
+ 
+ /*
+  * prints when a thread is waiting to enter the polling station
+  */
+ void print_wait_polling_station( char party, int threadid)
 
