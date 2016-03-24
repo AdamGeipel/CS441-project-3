@@ -22,6 +22,7 @@ int num_independents = 0;
 int num_booths = 0;
 int total_voting = 0; //total people voting today (set in main)
 int total_finished = 0; //total num people finished voting and left polling station
+int in = 0;
 int total_entered = 0; //toal num entered the polling station
 int *buffer = NULL;
 int total_waiting = 0; //count for the initial print waiting for station to open

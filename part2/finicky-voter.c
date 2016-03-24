@@ -697,7 +697,7 @@ void *independent(void *threadid){
 		break;
 	}
 	else{	//no open voting booth
-		semaphore_wait(&mutex_lineup));
+		semaphore_wait(&mutex_lineup);
 			
 			//walking in line
 			sleep(1); 
