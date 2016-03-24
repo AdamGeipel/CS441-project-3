@@ -80,17 +80,17 @@ int main(int argc, char * argv[]) {
       fprintf(stderr, "Error: semaphore cannot be created.\n");
       exit(-1);
     }
-    if ((semaphore_create(&waiting_rep, num_republicans)) == -1)
+    if ((semaphore_create(&rep_in_line_mutex, 1)) == -1)
     {
       fprintf(stderr, "Error: semaphore cannot be created.\n");
       exit(-1);
     }
-    if ((semaphore_create(&waiting_dem, num_democrats)) == -1)
+    if ((semaphore_create(&dem_in_line_mutex, 1)) == -1)
     {
       fprintf(stderr, "Error: semaphore cannot be created.\n");
       exit(-1);
     }
-    if ((semaphore_create(&waiting_ind, num_independents)) == -1)
+    if ((semaphore_create(&mutex_in, 1)) == -1)
     {
       fprintf(stderr, "Error: semaphore cannot be created.\n");
       exit(-1);
@@ -121,7 +121,7 @@ int main(int argc, char * argv[]) {
       exit(-1);
     }
 
-	srand(time(NULL)); //seed the time. Does this go here??
+	srand(time(NULL)); //seed the time
 	
 	//create threads
        create_and_join_threads();
@@ -169,10 +169,10 @@ void create_and_join_threads(){
         
        //all threads created so sleep for two seconds
         usleep(2000000);
-        printf("done sleeping\n");
+    
         //open up polling station
         semaphore_post(&barrier);
-        printf("posting\n");
+ 
 
 	
 	/*
@@ -216,7 +216,7 @@ void print_wait_polling_station( char party, int threadid){
 		party_status = "Independent";
 	}
 	
-	printf("%s    %d \t|->  ", party_status, threadid);
+	printf("%12s    %2d \t|->  ", party_status, threadid);
 	for(i = 0; i < num_booths; i++){
 		printf("[%c]", buffer[i]);
 	}
@@ -241,7 +241,7 @@ void print_voting( char party, int threadid, int booth ){
 		party_status = "Independent";
 	}
 	
-	printf("%s    %d in   %d|->  ", party_status, threadid, booth);
+	printf("%12s    %2d in   %2d|->  ", party_status, threadid, booth);
 	for(i = 0; i < num_booths; i++){
 		printf("[%c]", buffer[i]);
 	}
@@ -262,7 +262,7 @@ void print_voting_status(char party, int threadid, char status ){
 		party_status = "Independent";
 	}
 	
-	printf("%s    %d \t|->  ", party_status, threadid);
+	printf("%12s    %2d \t|->  ", party_status, threadid);
 	for(i = 0; i < num_booths; i++){
 		printf("[%c]", buffer[i]);
 	}
@@ -275,9 +275,9 @@ void print_voting_status(char party, int threadid, char status ){
 		voting_status = "Leaving the polling station";
 	}
 	
-	printf("  <-| %s\n", voting_status);
+	printf("  <-| %30s\n", voting_status);
 	total_entered++;
-        printf("total enterd = %d\n", total_entered);
+      
 	
 }
 
@@ -290,14 +290,6 @@ void *republican(void *threadid){
         semaphore_wait(&printing_mutex);
 	print_wait_polling_station(party, tid);
 	semaphore_post(&printing_mutex);
-        //print waiting for polling station to open
-            /* semaphore_wait(&printing_mutex);
-        if(total_waiting <= (total_voting-1)){
-            print_wait_polling_station(party, tid);
-         }
-        semaphore_post(&printing_mutex);
-        */	
-
 
 	//waiting until all threads can enter polling station after two seconds
 	semaphore_wait(&barrier);
@@ -313,32 +305,37 @@ void *republican(void *threadid){
 	 * a random number between 0 and 50,000 microseconds
 	 */
 	 usleep(random()%50000);
-	 printf("sleeping\n");
+	
 	 /*
 	  * Want everyone to say they entered the building before we can 
 	  * start changing voting statuses. If you "registered" quickly 
 	  * you may get to jump in line first!
 	  */
 	 if( total_entered == total_voting ){
-             printf("inside if total entered == total voting\n");
+           
 		 semaphore_post(&can_vote);
 	 }
 	 
 	 //wait until all have entered the building
 	 semaphore_wait(&can_vote);
 	 semaphore_post(&can_vote);
-	 printf("can vote republicans\n");
+	
 	 /*
 	  * Let's do some voting!
 	  */
-	//while(true){
+	while(1){
 		
 	semaphore_wait(&mutex_lineup);
-        printf("%c made it through the mutex_lineup!\n", party);
+      
 	if( dem_inline != 0){ //there are democrats in line to vote
 		semaphore_wait(&rep_barrier);
 		sleep(1); //walking in line
 		rep_inline++;
+		
+		semaphore_wait(&mutex_in);
+		in++;
+		semaphore_post(&mutex_in);
+
 		semaphore_post(&mutex_lineup);//let other people try and line up 
 		semaphore_wait(&dem_barrier);
 		
@@ -363,14 +360,28 @@ void *republican(void *threadid){
 		semaphore_post(&printing_mutex);
 		
 		//finished voting
+		
 		print_voting_status(party, tid, 'L'); //print leaving a voting booth
+		buffer[booth_num] = '.';
 		semaphore_post(&dem_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		rep_inline--;
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
+
+		semaphore_wait(&rep_in_line_mutex);
+			rep_inline--;
+		semaphore_post(&rep_in_line_mutex);
+		break;
 	}
 	else{//no democrats in line
 		sleep(1); //walking in line
 		rep_inline++;//we're in line waiting to vote
+
+		semaphore_wait(&mutex_in);
+		in++;
+		semaphore_post(&mutex_in);
+
 		semaphore_post(&mutex_lineup); //let other people try and line up
 		semaphore_wait(&dem_barrier);
 		
@@ -395,11 +406,20 @@ void *republican(void *threadid){
 		semaphore_post(&printing_mutex);
 		
 		//finished voting
+		buffer[booth_num] = '.';
 		print_voting_status(party, tid, 'L'); //print leaving a voting booth
 		semaphore_post(&dem_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		rep_inline--;
 		
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
+
+		semaphore_wait(&rep_in_line_mutex);
+			rep_inline--;
+		semaphore_post(&rep_in_line_mutex);
+		break;
+		}
 	}		
 
 		//exit thread.
@@ -448,34 +468,40 @@ void *democrat(void *threadid){
 	 * a random number between 0 and 50,000 microseconds
 	 */
 	 usleep(random()%50000);
-	 printf("sleeping\n");
+	
 	 /*
 	  * Want everyone to say they entered the building before we can 
 	  * start changing voting statuses. If you "registered" quickly 
 	  * you may get to jump in line!
 	  */
 	 if( total_entered == total_voting ){
-             printf("inside if total entered == total voting\n");
+             
 		 semaphore_post(&can_vote);
 	 }
 	 
 	 //wait until all have entered the building
 	 semaphore_wait(&can_vote);
 	 semaphore_post(&can_vote);
-         printf("can vote democrats\n");
+        
 	 
 	/*
 	  * Let's do some voting!
 	  */
-	//while(true){
+	while(1){
 		
 	semaphore_wait(&mutex_lineup);
-        printf("%c made it through the mutex_lineup!\n", party);
+       
 
 	if( rep_inline != 0){ //there are democrats in line to vote
 		semaphore_wait(&dem_barrier);
 		sleep(1); //walking in line
+		
 		dem_inline++;
+
+		semaphore_wait(&mutex_in);
+			in++;
+		semaphore_post(&mutex_in);
+
 		semaphore_post(&mutex_lineup);//let other people try and line up 
 		semaphore_wait(&rep_barrier);
 		
@@ -503,11 +529,24 @@ void *democrat(void *threadid){
 		print_voting_status(party, tid, 'L'); //print leaving a voting booth
 		semaphore_post(&rep_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		rep_inline--;
+		
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
+
+		semaphore_wait(&dem_in_line_mutex);
+			dem_inline--;
+		semaphore_post(&dem_in_line_mutex);
+		break;
 	}
 	else{//no democrats in line
 		sleep(1); //walking in line
 		dem_inline++;//we're in line waiting to vote
+
+		semaphore_wait(&mutex_in);
+			in++;
+		semaphore_post(&mutex_in);
+
 		semaphore_post(&mutex_lineup); //let other people try and line up
 		semaphore_wait(&rep_barrier);
 		
@@ -535,10 +574,18 @@ void *democrat(void *threadid){
 		print_voting_status(party, tid, 'L'); //print leaving a voting booth
 		semaphore_post(&rep_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		dem_inline--;
 		
-	}		
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
 
+		semaphore_wait(&dem_in_line_mutex);
+			dem_inline--;
+		semaphore_post(&dem_in_line_mutex);
+		break;
+		}
+			
+	}
 		//exit thread.
 		pthread_exit(NULL);		
 		/* 
@@ -552,6 +599,7 @@ void *democrat(void *threadid){
 }
 
 void *independent(void *threadid){
+
 	int tid = (intptr_t)threadid;
 	char party = 'I';
         int i, booth_num;
@@ -559,10 +607,10 @@ void *independent(void *threadid){
 	 * need a check because we don't want this to print again after
 	 * all threads have gotten to this point
 	 */
-        semaphore_wait(&printing_mutex);
+	semaphore_wait(&printing_mutex);
 	print_wait_polling_station(party, tid);
 	semaphore_post(&printing_mutex);
-                
+        
         //print waiting for polling station to open
         /*semaphore_wait(&printing_mutex);
         if(total_waiting <= (total_voting-1)){
@@ -570,6 +618,7 @@ void *independent(void *threadid){
         }
         semaphore_post(&printing_mutex);
 	*/
+
 	//waiting until all threads can enter polling station after two seconds
 	semaphore_wait(&barrier);
 	semaphore_post(&barrier);
@@ -584,63 +633,125 @@ void *independent(void *threadid){
 	 * a random number between 0 and 50,000 microseconds
 	 */
 	 usleep(random()%50000);
-	 printf("sleeping\n");
+	
 	 /*
 	  * Want everyone to say they entered the building before we can 
 	  * start changing voting statuses. If you "registered" quickly 
 	  * you may get to jump in line!
 	  */
 	 if( total_entered == total_voting ){
-             printf("inside if total entered == total voting\n");
+             
 		 semaphore_post(&can_vote);
 	 }
 	 
 	 //wait until all have entered the building
 	 semaphore_wait(&can_vote);
 	 semaphore_post(&can_vote);
-	 printf("can vote independents\n");
+        
+	 
 	/*
-	* Let's do some voting!
-	*/
+	  * Let's do some voting!
+	  */
+	while(1){
 	
-	semaphore_wait(&mutex_lineup);
-        printf("%c made it through the mutex_lineup!\n", party);
+	if( in != num_booths){ 	//if there is an open voting booth
+		
+		//add a person (in this case the independent) to the voting booth
+		semaphore_wait(&mutex_in);
+			in++;
+		semaphore_post(&mutex_in);
 
-	semaphore_post(&mutex_lineup);//let other people try and line up 
-	sleep(1); //walking in line
-	
-	/*
-	 * vote
-	 */
-	print_voting_status(party, tid, 'W'); //print waiting on a voting booth
-	semaphore_wait(&voting_booths); //see if booths are available
-	
-	//if we hit here we have a voting booth so vote
-	for(i = 0; i < num_booths; i++){
-		if( buffer[i] == '.' ){
-			buffer[i] = 'I';
-			booth_num = i; 
-			break; //we're in our first open booth so jump out
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+
+		
+			print_voting_status(party, tid, 'W'); 		//print waiting on a voting booth
+
+		semaphore_post(&printing_mutex);
+		
+		semaphore_wait(&voting_booths); 			//see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] = 'I';
+				booth_num = i; 
+				break; 					//we're in our first open booth so jump out
+			}
 		}
-	}
-	//print that we are now casting our vote a.k.a sleeping!
-	semaphore_wait(&printing_mutex);
-	print_voting(party ,tid, booth_num);
-	usleep(random()%100000);
-	semaphore_post(&printing_mutex);
-	
-	//finished voting
-	print_voting_status(party, tid, 'L'); //print leaving a voting booth
-	semaphore_post(&voting_booths); //release the booth you voted in
+		semaphore_wait(&printing_mutex);
+			print_voting(party, tid, booth_num);
+			usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); 			//print leaving a voting booth
+		buffer[booth_num] = '.';
+		semaphore_post(&voting_booths); 			//release the booth you voted in
+		
+		//open up a voting booth
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
 
-	//exit thread.
-	pthread_exit(NULL);		
-	/* 
-	 * It's done voting so we don't need the thread anymore. 
-	 * For the above reason I don't think we need waiting_rep, waiting_ind
-	 * and waiting_dem....
-	 * Also, why I don't think we need a while loop either. when it reaches
-	 * the end we kill it. It should only go through once to vote not as many
-	 * times as it wants to. 
-         */
+		break;
+	}
+	else{	//no open voting booth
+		semaphore_wait(&mutex_lineup));
+			
+			//walking in line
+			sleep(1); 
+			
+			while(in == num_booths) {}			//busy wait until there's an available booth
+
+
+			semaphore_wait(&mutex_in);
+				in++;
+			semaphore_post(&mutex_in);
+		
+			print_voting_status(party, tid, 'W'); 		//print waiting on a voting booth
+
+		semaphore_post(&mutex_lineup);
+		semaphore_wait(&voting_booths); 			//see if booths are available
+		
+		//if we hit here we have a voting booth so vote
+		for(i = 0; i < num_booths; i++){
+			if( buffer[i] == '.' ){
+				buffer[i] = 'I';
+				booth_num = i; 
+				break; //we're in our first open booth so jump out
+			}
+		}
+		//print that we are now casting our vote a.k.a sleeping!
+		semaphore_wait(&printing_mutex);
+			print_voting(party, tid, booth_num);
+			usleep(random()%100000);
+		semaphore_post(&printing_mutex);
+		
+		//finished voting
+		print_voting_status(party, tid, 'L'); 			//print leaving a voting booth
+		buffer[booth_num] = '.';
+
+		semaphore_post(&voting_booths); 			//release the booth you voted in
+		
+		semaphore_wait(&mutex_in);
+			in--;
+		semaphore_post(&mutex_in);
+
+		break;
+		}
+			
+	}
+		//exit thread.
+		pthread_exit(NULL);		
+		/* 
+		 * It's done voting so we don't need the thread anymore. 
+		 * For the above reason I don't think we need waiting_rep, waiting_ind
+		 * and waiting_dem....
+		 * Also, why I don't think we need a while loop either. when it reaches
+		 * the end we kill it. It should only go through once to vote not as many
+		 * times as it wants to. 
+		*/
+
 }
+
