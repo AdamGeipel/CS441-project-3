@@ -30,6 +30,8 @@ pthread_t *dem_threads;
 pthread_t *ind_threads;
 semaphore_t mutex_rope, mutex_lineup, barrier, printing_mutex, can_vote;
 semaphore_t waiting_rep, waiting_dem, waiting_ind, rep_barrier, dem_barrier, voting_booths;
+//add these to .c
+semaphore_t rep_in_line_mutex, mutex_in, dem_in_line_mutex;
 
 
 /*****************************
