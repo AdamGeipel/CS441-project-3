@@ -336,9 +336,6 @@ void *republican(void *threadid){
 		rep_inline++;
 		printf("republicans in line: %d\n", rep_inline);
 		
-		semaphore_wait(&mutex_in);
-		in++;
-		semaphore_post(&mutex_in);
 
 		semaphore_post(&mutex_lineup);//let other people try and line up 
 		//semaphore_wait(&dem_barrier);
@@ -371,9 +368,7 @@ void *republican(void *threadid){
 		buffer[booth_num] = '.';
 		//semaphore_post(&dem_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		semaphore_wait(&mutex_in);
-			in--;
-		semaphore_post(&mutex_in);
+		
 
 		semaphore_wait(&rep_in_line_mutex);
 			rep_inline--;
@@ -387,9 +382,7 @@ void *republican(void *threadid){
 		printf("republicans in line: %d\n", rep_inline);
 		
 
-		semaphore_wait(&mutex_in);
-		in++;
-		semaphore_post(&mutex_in);
+		
 
 		semaphore_post(&mutex_lineup); //let other people try and line up
 		//semaphore_wait(&dem_barrier);
@@ -422,9 +415,7 @@ void *republican(void *threadid){
 		//semaphore_post(&dem_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
 		
-		semaphore_wait(&mutex_in);
-			in--;
-		semaphore_post(&mutex_in);
+		
 
 		semaphore_wait(&rep_in_line_mutex);
 			rep_inline--;
@@ -515,9 +506,6 @@ void *democrat(void *threadid){
 		dem_inline++;
 		printf("democrats in line: %d\n", dem_inline);
 
-		semaphore_wait(&mutex_in);
-			in++;
-		semaphore_post(&mutex_in);
 
 		semaphore_post(&mutex_lineup);//let other people try and line up 
 		//semaphore_wait(&rep_barrier);
@@ -549,10 +537,7 @@ void *democrat(void *threadid){
 
 		//semaphore_post(&rep_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		
-		semaphore_wait(&mutex_in);
-			in--;
-		semaphore_post(&mutex_in);
+	
 
 		semaphore_wait(&dem_in_line_mutex);
 			dem_inline--;
@@ -565,9 +550,7 @@ void *democrat(void *threadid){
 		dem_inline++;//we're in line waiting to vote
 		printf("democrats in line: %d\n", dem_inline);
 
-		semaphore_wait(&mutex_in);
-			in++;
-		semaphore_post(&mutex_in);
+		
 
 		semaphore_post(&mutex_lineup); //let other people try and line up
 		//semaphore_wait(&rep_barrier);
@@ -596,10 +579,7 @@ void *democrat(void *threadid){
 		print_voting_status(party, tid, 'L'); //print leaving a voting booth
 		//semaphore_post(&rep_barrier); //let a democrat know you left
 		semaphore_post(&voting_booths); //release the booth you voted in
-		
-		semaphore_wait(&mutex_in);
-			in--;
-		semaphore_post(&mutex_in);
+
 
 		semaphore_wait(&dem_in_line_mutex);
 			dem_inline--;
