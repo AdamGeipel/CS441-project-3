@@ -1,8 +1,14 @@
-/*
+/* 
+ * The Finicky Voter
+ * 
+ * By Adam Geipel and Christa Brehm
+ * For CS441
  *
+ * March 24th, 2016
  *
- * CS 441/541: Finicky Voter (Assignment 2 Part 2)
+ * Simulates a voting station where Democrats and Republicans vote separately
  *
+ * For more information refer to file README.md
  */
 #include "finicky-voter.h"
 
@@ -20,37 +26,50 @@ int main(int argc, char * argv[]) {
     /*
      * read arguments
      */
-    if( argc == 1 ){ //all defaults
+    // Set default number of voters for each party and default number of booths
+    if( argc == 1 ){ 
         num_booths = 10;
         num_republicans = 5;
         num_democrats = 5;
         num_independents = 5;
+
+	// User supplied a number of voting booths
     }else if( argc == 2 ){
         num_booths = strtol(argv[1], NULL, 10);
         num_republicans = 5;
         num_democrats = 5;
         num_independents = 5;
+
+	// User supplied voting booths count and number of republicans
     }else if( argc == 3 ){
         num_booths = strtol(argv[1], NULL, 10);
         num_republicans = (int)strtol(argv[2], NULL, 10);
         num_democrats = 5;
         num_independents = 5;
+	
+	// User supplied booths, republicans, and democrats
     }else if( argc == 4 ){
         num_booths = strtol(argv[1], NULL, 10);
         num_republicans = (int)strtol(argv[2], NULL, 10);
         num_democrats = (int)strtol(argv[3], NULL, 10);
         num_independents = 5;
+
+	// All arguments supplied by user
     }else if( argc == 5 ){
         num_booths = strtol(argv[1], NULL, 10);
         num_republicans = (int)strtol(argv[2], NULL, 10);
         num_democrats = (int)strtol(argv[3], NULL, 10);
         num_independents = (int)strtol(argv[4], NULL, 10);
+
+	//Invalid number of arguments
     }else{
         fprintf(stderr, "Error, too many arguments\n");
         exit(-1);
     }
 
+	// Utility variable to make sure all voters are created and enter voting station
     total_voting = num_republicans + num_democrats + num_independents;
+
     printf("Number of Voting Booths : %d\n", num_booths);
     printf("Number of Republican : %d\n", num_republicans);
     printf("Number of Democrat : %d\n", num_democrats);
@@ -61,12 +80,15 @@ int main(int argc, char * argv[]) {
     //create space for buffer (booths)
     buffer = malloc(sizeof(int) * num_booths);
  
-    //buffer is initially empty with '.'
+    //buffer is initially filled with '.' to show that all booths are empty
     for ( i = 0; i < num_booths; i++){
         buffer[i] = '.';
     }
     
-    //create our semaphores
+    /*
+	 * Create all our semaphores
+	 * For description of use, see finicky-voter.h
+	*/
     if ((semaphore_create(&can_vote, 0)) == -1)
         {
             fprintf(stderr, "Error: semaphore cannot be created.\n");
@@ -109,11 +131,12 @@ int main(int argc, char * argv[]) {
         exit(-1);
     }
     
+	// Seed random variable with current time
     srand(time(NULL)); 
     
     create_and_join_threads();
     
-    //free everything
+    //free buffer and space used to store threads (anything we jused malloc to create)
     free(buffer);
     buffer = NULL;
     free(rep_threads);
@@ -128,14 +151,21 @@ int main(int argc, char * argv[]) {
 }
 
 void create_and_join_threads(){
-    int i, rc;
+    int i;
+
+	//check thread status at creation and join
+	int rc;
     
     /*
-     * Create all threads
-     */
-      
+     * Create all our threads
+	 * Need a thread for each voter
+	 *
+	 * Space allocated is (sizeof(pthread_t) * num_party) to ensure threads are together in memory
+	 * Rather than chance having them at various separate addresses by using malloc per thread
+     */ 
     rep_threads = (pthread_t *)malloc(sizeof(pthread_t) * num_republicans);
-    //create republican threads
+    
+	//create republican threads
     for(i = 0; i < num_republicans; i++){
         rc = pthread_create(&(rep_threads[i]), NULL, republicans, (void*)(intptr_t)i);
         if (rc != 0){
@@ -145,7 +175,8 @@ void create_and_join_threads(){
     }
     
     dem_threads = (pthread_t *)malloc(sizeof(pthread_t) * num_democrats);
-    //create democrat threads
+    
+	//create democrat threads
     for(i = 0; i < num_democrats; i++){
         rc = pthread_create(&(dem_threads[i]), NULL, democrats, (void*)(intptr_t)i);
         if (rc != 0){
@@ -155,7 +186,8 @@ void create_and_join_threads(){
     }
     
     ind_threads = (pthread_t *)malloc(sizeof(pthread_t) * num_independents);
-    //create independent threads
+    
+	//create independent threads
     for(i = 0; i < num_independents; i++){
         rc = pthread_create(&(ind_threads[i]), NULL, independents, (void*)(intptr_t)i);
         if (rc != 0){
@@ -164,9 +196,10 @@ void create_and_join_threads(){
         }
     }
         
-    //all threads created so sleep for two seconds
+    //all threads created, so sleep for two seconds
     usleep(2000000);
-    //now open up polling station
+
+    //Open polling station after sleep
     semaphore_post(&barrier);
    
     
@@ -196,13 +229,19 @@ void create_and_join_threads(){
     }
 }
 
+/*
+ * Method to tell user that a thread is waiting for a voting station
+ *
+*/
 void print_wait_polling_station( char party, int threadid){
     int i;
-    //put printing mutex inside method so you don't have to type it before
-    //and after everytime you want to call a print method
+
+    // put printing mutex inside method so you don't have to type it before
+    // and after everytime you want to call a print method
     semaphore_wait(&printing_mutex);
     char *party_status = NULL;
     
+	// Which party does the thread belong to?
     if( party == 'R' ){
         party_status = "Republican ";
     }else if( party == 'D' ){
@@ -211,29 +250,38 @@ void print_wait_polling_station( char party, int threadid){
         party_status = "Independent";
     }
     
+	// Display the buffer to show who's in what booth (should be empty)
     printf("%s %2d\t\t|->  ", party_status, threadid);
     for(i = 0; i < num_booths; i++){
         printf("[%c]", buffer[i]);
     }
     printf("  <-| Waiting for polling station to open...\n");
     
-    //waiting to enter polling station
+    // Waiting to enter polling station
     total_waiting++; 
     
+	// If every thread is waiting 
     if(total_waiting == total_voting){
         printf("------------------------+---------------------------------------------------------------------------------------\n");
     }
+	//let another thread print their status
     semaphore_post(&printing_mutex);
 }
 
+
+/*
+ * Shows the status of the voter thread
+*/
 void print_voting_status(char party, int threadid, char status ){
     int i;
+
     //put printing mutex inside method so you don't have to type it before
     //and after everytime you want to call a print method
     semaphore_wait(&printing_mutex);
     char *voting_status= NULL;
     char *party_status = NULL;
 
+	//Which party does the thread belong to?
     if( party == 'R' ){
         party_status = "Republican ";
     }else if( party == 'D' ){
@@ -247,11 +295,14 @@ void print_voting_status(char party, int threadid, char status ){
         printf("[%c]", buffer[i]);
     }
     
+	
     if( status == 'E' ){
         voting_status = "Entering the polling station";
-    }else if( status == 'W' ){
+    
+	}else if( status == 'W' ){
         voting_status = "Waiting on a voting booth";
-    }else{
+    
+	}else{
         voting_status = "Leaving the polling station";
     }
     
@@ -262,8 +313,12 @@ void print_voting_status(char party, int threadid, char status ){
     semaphore_post(&printing_mutex);
 }
 
+/*
+ * Tell user that the thread is voting
+*/
 void print_voting( char party, int threadid, int booth ){
     int i;
+
     //put printing mutex inside method so you don't have to type it before
     //and after everytime you want to call a print method
     semaphore_wait(&printing_mutex);
@@ -278,7 +333,8 @@ void print_voting( char party, int threadid, int booth ){
     }
     
     printf("%s %2d   in %3d |->  ", party_status, threadid, booth);
-    
+   
+	//print out the buffer 
     for(i = 0; i < num_booths; i++){
         printf("[%c]", buffer[i]);
     }
@@ -289,7 +345,9 @@ void print_voting( char party, int threadid, int booth ){
 
 void* republicans(void *threadid){
     int tid = (intptr_t)threadid;
-    char party = 'R';
+   
+	// Easier to use with voting methods than "Republican" thread
+	char party = 'R';
     int i, booth_num;
     
     //say we're waiting for the polling station to open
@@ -308,35 +366,39 @@ void* republicans(void *threadid){
         semaphore_post(&can_vote);
     }
 
-    //you've entered so simulate registering by sleeping
+    //Voter has entered so simulate registering by sleeping
     usleep(random()%500000);
     
-    //wait until everyone enters the polling station before we start voting
+    // Wait until everyone enters the polling station before we start voting
+	// Using "turnstyle" technique
     semaphore_wait(&can_vote);
     semaphore_post(&can_vote);
     
-    /*
-     * voting
-     */
-    //walk past register station
+    /*	VOTING PROCESS STARTS HERE	*/
+
+    //walk past registration station
     usleep(random()%100000);
        
-    //every thread will hit this so it needs a post in the if and the else as a thread will only 
-    //enter one of those based on whether or not the opposing party is in line
+    // every thread will hit this so it needs a post in the if and the else 
+	// as a thread will only enter one of those 
+	// based on whether or not the opposing party is in line
     semaphore_wait(&mutex_lineup);
     
-    //if no democrats are waiting in line, goahead
-    if(dem_inline == 0){
+    //if no democrats are waiting in line, go ahead
+    if(dem_inline == 0)
+	{
 
         //increment number of republicans that are in line
         rep_inline++;
         //print we are waiting on a booth
         print_voting_status(party, tid, 'W');
-        //increment the number of people in line/voting
+        
+		//increment the number of people in line/voting
         semaphore_wait(&mutex_in);
-        num_inline++;
+        	num_inline++;
         semaphore_post(&mutex_in);
-        //let someone else enter the line
+       
+		//let someone else enter the line
         semaphore_post(&mutex_lineup);
             
         //simulate walking in line
@@ -344,50 +406,57 @@ void* republicans(void *threadid){
 
         /*
          * check if there are any open booths
-         * multiple threads could be entering here if multiple booths
-         * are open hence why we need the printing_mutex inside the print methods
+         * multiple threads could be entering here if multiple booths are open
+         * hence why we need the printing_mutex inside the print methods
          */
         semaphore_wait(&free_booths);
-        for(i = 0; i < num_booths; i++){
-            if( buffer[i] == '.'){
-                buffer[i] = 'R';
-                booth_num = i;
-                break;
-            }   
-        }
-            
-        //say that you are voting!
-        print_voting(party,tid, booth_num);
-        usleep(random()%1000000);
-            
-        //you finished voting so leave the building and clear you booth
-        print_voting_status(party, tid, 'L');
-        buffer[booth_num] = '.';
+		    for(i = 0; i < num_booths; i++)
+			{
+				// Populate the buffer with the party marker to show booth is being used
+		        if( buffer[i] == '.')
+				{
+		            buffer[i] = 'R';
+		            booth_num = i;
+		            break;
+		        }   
+		    }
+		        
+		    //say that you are voting!
+		    print_voting(party,tid, booth_num);
+		    usleep(random()%1000000);
+		        
+		    // voter finished voting so leave the building and clear the booth
+		    print_voting_status(party, tid, 'L');
+		    buffer[booth_num] = '.';
         semaphore_post(&free_booths);
             
         
         semaphore_wait(&mutex_in);
-        num_inline--;
-        //there is a spot in line
-        if( num_inline < num_booths ){
-            //release the number of independents per open spot
-            for(i = 0; i < (num_booths - num_inline); i++){
-                semaphore_post(&inds_waiting_for_line);
-            }
-        }
+		    
+			num_inline--;
+
+		    //there is a spot in line
+		    if( num_inline < num_booths ){
+		        
+				//release the number of independents per open spot
+		        for(i = 0; i < (num_booths - num_inline); i++){
+		            semaphore_post(&inds_waiting_for_line);
+		        }
+		    }
+
         semaphore_post(&mutex_in);
 
             
         semaphore_wait(&protect_count);
-        //republican leaves booth
-        rep_inline--;
-        if(rep_inline == 0){
-            for(i=0; i < dem_inline; i++){
-                //when there are no more republicans in line, release all of the democrats 
-                //that were backed up waiting
-                semaphore_post(&dem_wait_on_reps);
-            }
-        }
+		    //republican leaves booth
+		    rep_inline--;
+		    if(rep_inline == 0){
+		        for(i=0; i < dem_inline; i++){
+		            //when there are no more republicans in line, release all of the democrats 
+		            //that were backed up waiting
+		            semaphore_post(&dem_wait_on_reps);
+		        }
+		    }
         semaphore_post(&protect_count);
 
            
@@ -774,7 +843,9 @@ void* independents(void *threadid){
         
         
         semaphore_wait(&mutex_in);
+
         num_inline--;
+
         //there is a spot in line
         if( num_inline < num_booths ){
             //release the number of independents per open spot

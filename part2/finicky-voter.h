@@ -44,15 +44,37 @@ int num_inline = 0; //keeps track of the number of people in line/voting
 pthread_t *rep_threads;
 pthread_t *dem_threads;
 pthread_t *ind_threads;
-semaphore_t protect_count, mutex_lineup, barrier, printing_mutex, can_vote;
-semaphore_t free_booths;
 
-semaphore_t reps_wait_on_dems, dem_wait_on_reps;
+/*	 Declare semaphores	 */
 
-//protects the "in" count
+// Protect counting variables, such as who is in line 
+semaphore_t protect_count, 
+
+// Control when voter can get in line
+mutex_lineup, 
+
+// Control ability to enter the voting station
+barrier, 
+
+// Protect printing operations
+printing_mutex, 
+
+// Used when checking if all voters are in the polling station
+can_vote,
+
+// Protect the number of free booths and voting activities
+free_booths,
+
+// Wait for democrats to exit
+reps_wait_on_dems, 
+
+// Wait for republicans exit 
+dem_wait_on_reps;
+
+// Protects the "in" count
 semaphore_t mutex_in;
 
-//for independents waiting to jump in line
+// For independents waiting to jump in line
 semaphore_t inds_waiting_for_line;
 
 /*****************************
