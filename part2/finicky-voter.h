@@ -80,5 +80,3 @@ void print_voting( char party, int threadid, int booth );
  * prints when a thread is waiting to enter the polling station
  */
 void print_wait_polling_station( char party, int threadid);
-
-void create_and_join_threads();
