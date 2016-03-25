@@ -39,7 +39,7 @@ int total_finished = 0; //total num people finished voting and left polling stat
 int total_entered = 0; //toal num entered the polling station
 int *buffer = NULL; //Array that is printed to show booth status
 int total_waiting = 0; //count for the initial print waiting for station to open
-int in = 0;
+int num_inline = 0; //keeps track of the number of people in line/voting
 
 pthread_t *rep_threads;
 pthread_t *dem_threads;
